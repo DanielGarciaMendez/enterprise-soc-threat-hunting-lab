@@ -1,346 +1,139 @@
 # Enterprise SOC, Threat Hunting & Incident Response Lab
 
-> A hands-on enterprise security lab focused on SIEM monitoring, Windows endpoint telemetry, Active Directory, threat hunting, incident response, detection engineering, and digital forensics.
+> **Status: In progress | October 15, 2026**  
+> Personal VirtualBox lab for learning centralized security monitoring, endpoint investigations, detection engineering, and incident response.
 
-## Overview
+## Project overview
 
-A project about small enterprise security environment and operating it from the perspective of a SOC analyst.
+I am building and operating a small enterprise-style security lab from the perspective of a SOC analyst. The focus is not just installing tools: it is understanding what telemetry proves, validating detections, correlating sources, investigating competing explanations, and documenting defensible conclusions.
 
-The goal of this project is to develop practical experience collecting and analyzing endpoint and identity telemetry, investigating suspicious behavior, creating detections, performing threat hunts, mapping activity to MITRE ATT&CK, and documenting incident response findings.
+**Investigation workflow:** Telemetry → Detection / hypothesis → Validation → Context and correlation → Assessment → Approved response if warranted → Documentation → Detection improvement.
 
-The core workflow of the project is:
+Some parts of that workflow are future learning goals. I only mark capabilities as implemented after collecting evidence that they work.
 
-**Telemetry → Detection / Hypothesis → Triage → Investigation → Scope → MITRE ATT&CK → Containment → Remediation → Detection Improvement → Reporting**
+## Milestone tracker
 
-This repository documents both the technical environment and the investigations performed throughout the project.
+| Milestone | State | Evidence / next requirement |
+| --- | --- | --- |
+| 0 — Build Wazuh server and dashboard | **Verified** | Wazuh Manager, Indexer, and Dashboard operating on `WAZUH-SOC01` |
+| 1 — Windows authentication telemetry and SIEM correlation | **Verified, documented** | `WIN11-01` agent Active; real Event 4625 correlated to Wazuh rule 60122 using Windows Record ID **12488**; [investigation](investigations/IR-002-authentication.md) |
+| 1a — Time synchronization remediation | **Verified** | Chrony reported major clock offset; `chronyc makestep`; `timedatectl` confirmed synchronization |
+| 1b — Redacted screenshots and formal export | **Not yet committed** | Collect/select sanitized artifacts and verify before publishing |
+| 2 — Sysmon process telemetry | **Planned** | Install Sysmon; verify Event 1 and Wazuh forwarding; inspect process lineage |
+| 3 — Blind SOC investigations | **Planned** | Safe benign vs adversary-like simulations, analyst unaware of scenario, documented disposition |
+| 4 — Domain / identity infrastructure | **Planned** | Only after a DC is actually deployed and verified |
+| 5 — Custom detection rules and threat hunts | **Planned** | Publish source, testing, false-positive analysis, and query evidence |
 
----
+### Milestone 1 — What was actually accomplished 
 
-## Lab Architecture
+- Brought up an all-in-one Wazuh deployment with Manager, Indexer, and Dashboard on Ubuntu.
+- Connected a Windows 11 test VM with Wazuh Windows Agent **v4.14.7**. Its agent ID **001** was verified as **Active** in the dashboard.
+- Inspected real Windows Security Events **4624** (successful logon), **4625** (failed logon), and **4672** (special privileges assigned at logon).
+- Created a disposable local account, `soc-test`, and used an authorized local `runas` test to generate a failed authentication followed by an authorized successful authentication.
+- Found a 4625 event in both Event Viewer and Wazuh; confirmed **the same underlying Windows record** by matching Event ID **4625** and **EventRecordID 12488** on `WIN11-01`. Wazuh's matched alert was rule **60122**, level **5**.
+- Identified a central-alert timestamp discrepancy, diagnosed the Ubuntu clock using Chrony, and corrected a clock offset of approximately **8 h 44 min**. After the correction, Ubuntu reported **System clock synchronized: yes**.
+- Assessed the known test as **benign, authorized lab activity**. No attacker, compromise, malware execution, or production incident was observed.
 
-```text
-                    Physical Windows Host
-                            |
-                    VirtualBox Hypervisor
-                            |
-             +--------------+--------------+
-             |                             |
-       WAZUH-SOC01                     WIN11-01
-       Ubuntu Server                   Windows 11
-             |                             |
-       Wazuh Server                   Wazuh Agent
-       Wazuh Indexer                  Sysmon [Planned]
-       Wazuh Dashboard
-             |
-             |
-         DC01 [Planned]
-         Windows Server
-         10.10.10.5
-         Active Directory / DNS
-```
+Read the [full authentication case](investigations/IR-002-authentication.md) and [daily log](docs/daily-log.md). A rule-generated SIEM alert is not automatically an analyst ticket, declared incident, or indication of a successful attack.
 
-### Network Design
-
-Each core VM uses:
-
-* **NAT adapter** — Internet access for updates and software installation
-* **Host-Only adapter** — Isolated communication between lab systems
-
----
-
-## Current Assets
-
-| Host        | Operating System    | IP          | Role                   | Status         |
-| ----------- | ------------------- | ----------- | ---------------------- | -------------- |
-| WAZUH-SOC01 | Ubuntu Server 24.04 | 10.10.10.10 | SIEM / Wazuh Server    | ✅ Running      |
-| WIN11-01    | Windows 11          | 10.10.10.20 | Employee Endpoint      | 🚧 In Progress |
-| DC01        | Windows Server      | 10.10.10.5  | Active Directory / DNS | ⏳ Planned      |
-
----
-
-## Technology Stack
-
-### Currently Implemented
-
-* VirtualBox
-* Ubuntu Server 24.04
-* Wazuh Server
-* Wazuh Indexer
-* Wazuh Dashboard
-* Linux
-
-### Planned
-
-* Windows 11
-* Wazuh Windows Agent
-* Sysmon
-* Windows Server
-* Active Directory
-* DNS
-* PowerShell
-* MITRE ATT&CK
-* Velociraptor
-* Python
-
----
-
-## Project Progress
-
-* [x] Create Ubuntu Server VM
-* [x] Configure WAZUH-SOC01
-* [x] Install Wazuh Server
-* [x] Install Wazuh Indexer
-* [x] Install Wazuh Dashboard
-* [x] Verify Wazuh Dashboard access
-* [ ] Create WIN11-01
-* [ ] Configure Windows lab networking
-* [ ] Install Wazuh Windows Agent
-* [ ] Confirm WIN11-01 appears Active in Wazuh
-* [ ] Generate baseline Windows events
-* [ ] Create clean VM snapshots
-
-### Upcoming
-
-* [ ] Sysmon & Endpoint Telemetry
-* [ ] Active Directory & Identity Telemetry
-* [ ] PowerShell, MITRE ATT&CK & Detection Engineering
-* [ ] First Incident Response Investigation
-
----
-
-## Wazuh Architecture
-
-The Wazuh deployment consists of three components:
-
-### Wazuh Agent
-
-Installed on monitored endpoints such as `WIN11-01`.
-
-The agent collects security information from the endpoint and forwards relevant telemetry to the Wazuh server.
-
-### Wazuh Server
-
-Receives and analyzes security data from endpoints.
-
-It applies rules and detection logic to determine whether activity should generate security alerts.
-
-### Wazuh Indexer
-
-Stores and organizes security events so that they can be efficiently searched and analyzed.
-
-### Wazuh Dashboard
-
-Provides the graphical interface used by the analyst to:
-
-* Review alerts
-* Search security events
-* Investigate endpoint activity
-* Filter telemetry
-* View dashboards
-* Analyze historical activity
-
----
-
-## Data Flow
+## Architecture
 
 ```text
-Windows Activity
-      |
-      v
-Windows Event Logs / Sysmon
-      |
-      v
-Wazuh Agent
-      |
-      v
-Wazuh Server
-      |
-      v
-Wazuh Indexer
-      |
-      v
-Wazuh Dashboard
-      |
-      v
-SOC Analyst Investigation
+                          Physical Windows Host
+                             Oracle VirtualBox
+                        /                       \\
+            WAZUH-SOC01 (Ubuntu VM)             WIN11-01 (Windows 11 VM)
+            - Wazuh Manager                    - Wazuh Agent v4.14.7 (001)
+            - Wazuh Indexer                    - Windows Security audit logs
+            - Wazuh Dashboard                  - Sysmon [NOT YET INSTALLED]
+            - Chrony
+                        ^                         |
+                        |    Wazuh agent data     |
+                        +-------------------------+
 ```
 
----
-
-## Detections
-
-Detection engineering work will be documented in the [`detections/`](detections/) directory.
-
-Planned detections include:
-
-| ID      | Detection                   | Status    |
-| ------- | --------------------------- | --------- |
-| DET-001 | Suspicious PowerShell       | ⏳ Planned |
-| DET-002 | Authentication Failures     | ⏳ Planned |
-| DET-003 | Scheduled Task Activity     | ⏳ Planned |
-| DET-004 | Custom Wazuh Rule           | ⏳ Planned |
-| DET-005 | Suspicious Network Activity | ⏳ Planned |
-
----
-
-## Threat Hunts
-
-Threat-hunting investigations will be documented in the [`threat-hunts/`](threat-hunts/) directory.
-
-| ID     | Hunt                    | Status    |
-| ------ | ----------------------- | --------- |
-| TH-001 | PowerShell Activity     | ⏳ Planned |
-| TH-002 | Persistence             | ⏳ Planned |
-| TH-003 | Authentication Activity | ⏳ Planned |
-
----
-
-## Incident Investigations
-
-Completed incident investigations will be documented in the [`investigations/`](investigations/) directory.
-
-| ID     | Investigation          | Status    |
-| ------ | ---------------------- | --------- |
-| IR-001 | Suspicious PowerShell  | ⏳ Planned |
-| IR-002 | Authentication Anomaly | ⏳ Planned |
-| IR-003 | Persistence            | ⏳ Planned |
-| IR-004 | Endpoint Forensics     | ⏳ Planned |
-| IR-005 | Multi-Stage Incident   | ⏳ Planned |
-
----
-
-## MITRE ATT&CK Coverage
-
-Observed behaviors and detections will be mapped to MITRE ATT&CK only when supported by evidence collected in the lab.
-
-Coverage will be documented in:
-
-[`mitre-attack/coverage.md`](mitre-attack/coverage.md)
-
----
-
-## Automation
-
-Planned automation includes:
-
-### PowerShell
-
-`Triage-Endpoint.ps1`
-
-Endpoint triage script designed to collect:
-
-* Running processes
-* Services
-* Network connections
-* Scheduled tasks
-* User information
-* Selected Windows Event Logs
-
-### Python
-
-`log_summary.py`
-
-Utility for summarizing exported security telemetry by fields such as:
-
-* Event ID
-* Process
-* User
-* Host
-* Destination
-
----
-
-## Documentation
-
-Additional documentation is maintained throughout the project:
+**Logical flow for the validated case:**
 
 ```text
-docs/
-├── daily-log.md
-├── learning-journal.md
-├── lessons-learned.md
-└── interview-notes.md
+Controlled local sign-in attempt
+    → Windows Security Event 4625 on WIN11-01
+    → Wazuh Windows Agent (001)
+    → Wazuh Manager detection rule 60122
+    → Wazuh alerts index
+    → Wazuh Dashboard / Threat Hunting
+    → Analyst correlation to EventRecordID 12488
 ```
 
-### Learning Journal
+The diagram simplifies internal Wazuh ingestion/indexing; it does not imply that **all** raw Windows events generate alerts. Sysmon telemetry and any future AD/DC path are not part of the currently validated pipeline.
 
-The learning journal tracks:
+### Network notes
 
-* Questions I encounter
-* Concepts I initially do not understand
-* Answers discovered during the project
-* Troubleshooting lessons
-* Technical concepts I want to revisit
+| Asset | Role / version | Verified address or identifier | Status |
+| --- | --- | --- | --- |
+| `WAZUH-SOC01` | Ubuntu VM, Wazuh Manager/Indexer/Dashboard | Host-only **`192.168.56.101`**, HTTPS Dashboard reachable | Running |
+| `WIN11-01` | Windows 11 Home, build `10.0.26200.8037` | Wazuh **Agent 001**, Agent v**4.14.7**; dashboard displayed IP **`10.0.2.15`** | Agent **Active** |
+| `DC01` | Future Windows Server / AD / DNS | **No verified address** | Planned |
 
----
+The VirtualBox design uses NAT for outbound access and a host-only adapter for lab connectivity. The agent-displayed `10.0.2.15` is **not** asserted to be the Windows VM's host-only address. Older `10.10.10.x` entries were design placeholders, not measured VM addresses; do not use them as deployed addresses.
 
-## Current Learning Topics
+See [asset inventory](architecture/asset-inventory.md), [environment](setup/01-lab-environment.md), and [Wazuh setup](setup/02-wazuh-siem.md).
 
-Some of the concepts being developed through this project include:
+## Current technology stack
 
-* SIEM architecture
-* Security telemetry
-* Endpoint monitoring
-* Windows Event Logs
-* Process lineage
-* Sysmon
-* Active Directory
-* Authentication telemetry
-* PowerShell investigation
-* Detection engineering
-* Threat hunting
-* MITRE ATT&CK
-* Incident response
-* Digital forensics
+| Implemented and demonstrated | Planned / not yet verified |
+| --- | --- |
+| VirtualBox, Ubuntu-based Wazuh VM, Wazuh Manager, Indexer, Dashboard | Sysmon, Microsoft-Windows-Sysmon event channel ingestion |
+| Windows 11 test VM, Wazuh Windows Agent | Windows Server, AD, domain authentication, additional endpoints |
+| Windows Security log collection and analysis (4624/4625/4672) | Custom Wazuh rules, detection-as-code, scheduled hunts |
+| Wazuh rule 60122 matching a 4625 test event | Full forensic acquisition, malware triage, Velociraptor |
+| Chrony clock troubleshooting and sync recovery | Autonomous scenario generator, SOAR, response automation |
 
----
+PowerShell and the local `runas` utility were used for lab administration/testing. A mention of a tool does not mean a detection, automation script, or investigation utilizing it is complete.
 
-## Troubleshooting Experience
+## Evidence and investigations
 
-The lab also documents technical failures and troubleshooting rather than hiding them.
+| ID | Work | State |
+| --- | --- | --- |
+| **IR-002** | [Controlled authentication failure and SIEM correlation](investigations/IR-002-authentication.md) | **Milestone 1 complete — benign validation case** |
+| IR-001 | Suspicious PowerShell / process lineage | Planned, dependent on Sysmon |
+| IR-003 | Persistence | Planned |
+| IR-004 | Endpoint forensics | Planned |
+| IR-005 | Multi-stage incident | Planned |
 
-Examples encountered during initial deployment include:
+The report documents collected facts, interpretation, the clock-drift issue, limitations, and the disposition. The `IR-002` identifier follows the project's existing planned case numbering. It does **not** imply that IR-001 or other cases are completed.
 
-* Wazuh repository connectivity issues
-* DNS resolution problems
-* GPG signing-key configuration
-* Wazuh Indexer package installation
-* Linux permissions
-* VirtualBox networking
+### Detection development status
 
-These troubleshooting experiences are documented because understanding **why something failed and how it was diagnosed** is an important part of operating security infrastructure.
+[Detection planning](detections/README.md) is separate from using a built-in Wazuh rule. **Rule 60122 was supplied by Wazuh; no custom rule has been written or tested yet.** Future goals include process anomalies, login patterns, scheduled tasks, network indicators, and rule-quality testing.
 
----
+### Threat hunting, malware triage, and ATT&CK
 
-## Repository Structure
+[Threat hunts](threat-hunts/README.md), [malware triage](malware-triage/README.md), and [MITRE ATT&CK tracking](mitre-attack/README.md) remain planned. A default rule's ATT&CK tag is **not proof** that its technique occurred in this case. The authentication lab was an authorized benign test.
+
+## Project structure
 
 ```text
 enterprise-soc-threat-hunting-lab/
-│
 ├── README.md
-│
 ├── architecture/
-│   ├── architecture-diagram.png
-│   ├── network-diagram.png
 │   └── asset-inventory.md
-│
 ├── setup/
 │   ├── 01-lab-environment.md
 │   ├── 02-wazuh-siem.md
 │   ├── 03-windows-agent.md
-│   ├── 04-sysmon.md
-│   ├── 05-active-directory.md
-│   ├── 06-powershell-logging.md
-│   └── 07-velociraptor.md
-│
-├── detections/
-├── threat-hunts/
+│   ├── 04-sysmon.md                 # planned
+│   ├── 05-active-directory.md       # planned
+│   ├── 06-powershell-logging.md     # planned
+│   └── 07-velociraptor.md          # planned
 ├── investigations/
-├── scripts/
-├── malware-triage/
-├── mitre-attack/
-├── screenshots/
-│
+│   ├── README.md
+│   └── IR-002-authentication.md    # controlled benign case
+├── detections/README.md           # plan, not deployed detections
+├── threat-hunts/README.md         # plan, not completed hunts
+├── malware-triage/README.md       # future work
+├── mitre-attack/README.md         # mapping policy; no confirmed attack mapping
+├── scripts/README.md              # planned utilities
+├── screenshots/README.md          # evidence/sanitization guidance
 └── docs/
     ├── daily-log.md
     ├── learning-journal.md
@@ -348,23 +141,24 @@ enterprise-soc-threat-hunting-lab/
     └── interview-notes.md
 ```
 
----
+## Technical lessons so far
 
-## Safety & Ethics
+1. **An Active agent is not proof that a specific Windows event was collected.** Verify the original EventRecordID against the Wazuh record.
+2. **Event ≠ alert ≠ investigation ticket ≠ incident.** Wazuh generated a level-5 rule match, not evidence of an attacker.
+3. **`0xC000006A` means incorrect password.** A single bad password cannot prove a brute-force attempt.
+4. **`::1` means IPv6 loopback.** It is not an external source address.
+5. **Windows 4672 is not automatically privilege escalation.** It can appear for legitimate privileged sessions.
+6. **Clock drift breaks investigation timelines.** Endpoint-reported UTC and SIEM-generated timestamps must be checked before correlating chronology.
 
-All security testing, simulations, and investigations in this repository are performed exclusively on systems and virtual machines that I own and control.
+## Safety, ethics, and evidence handling
 
-The lab is isolated from third-party, school, employer, and public systems.
+All test activity described here took place on personally owned/authorized local VMs and a disposable account. Do not run offensive simulations against external, university, or employer systems. Future blind investigations will use controlled and reversible behaviors—not real malware. **Never commit passwords, Wazuh enrollment secrets, full private logs, unredacted account SIDs, or confidential screenshots.** Only sanitized evidence belongs in this public repository.
 
-No adversary-emulation activity is conducted against unauthorized targets.
+## Next milestones
 
----
+1. Preserve sanitized screenshots/short event exports for the completed authentication case.
+2. Study TCP/UDP, DNS, TLS, VPN, NAT, IP/ports and packet flows; connect networking theory to SOC investigations.
+3. Install/configure Sysmon and confirm process-creation Event **1** locally and, if configured, in Wazuh.
+4. Run **blind, controlled** endpoint scenarios; make an analyst decision before revealing whether the activity was benign or simulated adversarial behavior.
+5. Publish separate case notes and detection improvements supported by evidence.
 
-## Project Status
-
-**Status:** 🚧 In Progress
-**Started:** August 2026
-
-Current milestone:
-
-**Building the endpoint → Wazuh SIEM telemetry pipeline.**
