@@ -15,10 +15,9 @@ Some parts of that workflow are future learning goals. I only mark capabilities 
 
 | Milestone | State | Evidence / next requirement |
 | --- | --- | --- |
-| 0 — Build Wazuh server and dashboard | **Verified** | Wazuh Manager, Indexer, and Dashboard operating on `WAZUH-SOC01` |
-| 1 — Windows authentication telemetry and SIEM correlation | **Verified, documented** | `WIN11-01` agent Active; real Event 4625 correlated to Wazuh rule 60122 using Windows Record ID **12488**; [investigation](investigations/IR-002-authentication.md) |
-| 1a — Time synchronization remediation | **Verified** | Chrony reported major clock offset; `chronyc makestep`; `timedatectl` confirmed synchronization |
-| 1b — Redacted screenshots and formal export | **Not yet committed** | Collect/select sanitized artifacts and verify before publishing |
+| 0 — Build Wazuh server and dashboard | **Done** | Wazuh Manager, Indexer, and Dashboard operating on `WAZUH-SOC01` |
+| 1 — Windows authentication telemetry and SIEM correlation | **Done, documented** | `WIN11-01` agent Active; real Event 4625 correlated to Wazuh rule 60122 using Windows Record ID **12488**; [investigation](investigations/IR-002-authentication.md) |
+| 1b — Redacted screenshots and formal export | **Not yet** | Collect/select sanitized artifacts and verify before publishing |
 | 2 — Sysmon process telemetry | **Planned** | Install Sysmon; verify Event 1 and Wazuh forwarding; inspect process lineage |
 | 3 — Blind SOC investigations | **Planned** | Safe benign vs adversary-like simulations, analyst unaware of scenario, documented disposition |
 | 4 — Domain / identity infrastructure | **Planned** | Only after a DC is actually deployed and verified |
@@ -148,11 +147,6 @@ enterprise-soc-threat-hunting-lab/
 3. **`0xC000006A` means incorrect password.** A single bad password cannot prove a brute-force attempt.
 4. **`::1` means IPv6 loopback.** It is not an external source address.
 5. **Windows 4672 is not automatically privilege escalation.** It can appear for legitimate privileged sessions.
-6. **Clock drift breaks investigation timelines.** Endpoint-reported UTC and SIEM-generated timestamps must be checked before correlating chronology.
-
-## Safety, ethics, and evidence handling
-
-All test activity described here took place on personally owned/authorized local VMs and a disposable account. Do not run offensive simulations against external, university, or employer systems. Future blind investigations will use controlled and reversible behaviors—not real malware. **Never commit passwords, Wazuh enrollment secrets, full private logs, unredacted account SIDs, or confidential screenshots.** Only sanitized evidence belongs in this public repository.
 
 ## Next milestones
 
