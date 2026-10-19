@@ -41,3 +41,23 @@ The Wazuh agent can collect security information by itself, but Sysmon provides 
 - How can I measure collection gaps, latency and false-positive rates?
 - How do Sysmon ProcessGuid and Windows logon/session IDs complement each other?
 - How do TCP, DNS, TLS, NAT, and VPN telemetry affect attribution?
+
+## Sysmon and custom detection concepts ? October 18?19, 2026
+
+**Why Sysmon complements Wazuh.** Sysmon produces detailed endpoint events; the Wazuh agent collects them, and the manager applies detection logic. Sysmon installation, collection, and alert generation are separate validation steps.
+
+**Event ID 1.** Process Create records execution context such as image, command line, user, parent, GUIDs, and UTC time. It is informational telemetry, not a maliciousness verdict.
+
+**Parent-child processes.** A parent launches a child; this relationship helps explain execution chains. Names alone are insufficient because multiple process instances can share a name.
+
+**ProcessGuid and ParentProcessGuid.** Compare a candidate parent's complete ProcessGuid with the child's complete ParentProcessGuid, checking the same host and relevant time. Unlike a name or a reused PID, the GUID distinguishes a process instance.
+
+**SYSTEM header versus process identity.** Event Viewer can show SYSTEM as event-recording security context while EventData User identifies WIN11-01\daniel as the process user. ParentUser is a separate field for the parent's identity.
+
+**Suspicious syntax versus intent.** ExecutionPolicy Bypass can appear in authorized administration. The controlled command printed a lab marker; assessing maliciousness would require the parent, user, purpose, and follow-on activity.
+
+**Telemetry ? detection ? alert ? incident.** Telemetry is the source record. Detection is matching logic. An alert is the resulting notification or indexed record. An incident is an assessed security event requiring an incident determination; a rule hit alone does not establish one.
+
+**Validation boundary.** Rule 100210 generated the intended level-7 lab alert. This positive test does not measure negative cases or false positives. Event IDs 3 and 22 remain future work.
+
+See [IR-001](../investigations/IR-001-sysmon-process-lineage.md) and [DET-004](../detections/README.md).

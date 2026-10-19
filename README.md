@@ -1,6 +1,6 @@
 # Enterprise SOC, Threat Hunting & Incident Response Lab
 
-> **Status: In progress | October 15, 2026**  
+> **Status: In progress | October 18, 2026**
 > Personal VirtualBox lab for learning centralized security monitoring, endpoint investigations, detection engineering, and incident response.
 
 ## Project overview
@@ -9,7 +9,7 @@ I am building and operating a small enterprise-style security lab from the persp
 
 **Investigation workflow:** Telemetry → Detection / hypothesis → Validation → Context and correlation → Assessment → Approved response if warranted → Documentation → Detection improvement.
 
-Some parts of that workflow are future learning goals. I only mark capabilities as implemented after collecting evidence that they work.
+Completed capabilities include Sysmon installation and Event ID 1 analysis, Notepad process lineage, Wazuh forwarding, and custom level-7 alert validation. Some parts of that workflow are future learning goals. I only mark capabilities as implemented after collecting evidence that they work.
 
 ## Milestone tracker
 
@@ -18,10 +18,11 @@ Some parts of that workflow are future learning goals. I only mark capabilities 
 | 0 — Build Wazuh server and dashboard | **Done** | Wazuh Manager, Indexer, and Dashboard operating on `WAZUH-SOC01` |
 | 1 — Windows authentication telemetry and SIEM correlation | **Done, documented** | `WIN11-01` agent Active; real Event 4625 correlated to Wazuh rule 60122 using Windows Record ID **12488**; [investigation](investigations/IR-002-authentication.md) |
 | 1b — Redacted screenshots and formal export | **Not yet** | Collect/select sanitized artifacts and verify before publishing |
-| 2 — Sysmon process telemetry | **Planned** | Install Sysmon; verify Event 1 and Wazuh forwarding; inspect process lineage |
+| 2 — Sysmon process telemetry | **Implemented and validated** | Event ID 1, Notepad GUID lineage, Wazuh forwarding; [IR-001](investigations/IR-001-sysmon-process-lineage.md) |
 | 3 — Blind SOC investigations | **Planned** | Safe benign vs adversary-like simulations, analyst unaware of scenario, documented disposition |
 | 4 — Domain / identity infrastructure | **Planned** | Only after a DC is actually deployed and verified |
-| 5 — Custom detection rules and threat hunts | **Planned** | Publish source, testing, false-positive analysis, and query evidence |
+| 5 — Custom detection rules | **Implemented and validated** | Rule 100210; benign test produced a level-7 alert; broader testing pending |
+| 5a — Threat hunts | **Planned** | Document hypotheses, queries, evidence, and outcomes |
 
 ### Milestone 1 — What was actually accomplished 
 
@@ -35,6 +36,19 @@ Some parts of that workflow are future learning goals. I only mark capabilities 
 
 Read the [full authentication case](investigations/IR-002-authentication.md) and [daily log](docs/daily-log.md). A rule-generated SIEM alert is not automatically an analyst ticket, declared incident, or indication of a successful attack.
 
+### Milestone 2 — Sysmon Process Monitoring and Detection Engineering
+
+- Installed Sysmon on WIN11-01 and validated Event ID **1** process-create telemetry.
+- Ran a controlled Notepad experiment; inspected process and parent context and correlated full ProcessGuid/ParentProcessGuid values.
+- Distinguished SYSTEM in the Event Viewer header from process identity in EventData.
+- Configured Wazuh agent collection of Microsoft-Windows-Sysmon/Operational.
+- Created custom rule **100210**, level **7**, in **SysmonPowershellTest.xml**.
+- Ran a benign PowerShell ExecutionPolicy Bypass command that printed SOC-LAB-TEST; Threat Hunting displayed **LAB: PowerShell execution policy bypass**.
+
+This demonstrates detection engineering and SIEM validation. The known activity was benign and authorized. Lineage and suspicious syntax require context. Event IDs **3** and **22** remain future work.
+
+Read [IR-001](investigations/IR-001-sysmon-process-lineage.md), [Sysmon setup](setup/04-sysmon.md), and [DET-004](detections/README.md). Evidence: [rule definition](screenshots/BeningTestSysmon.png), [Notepad parent context](screenshots/ChildProcessNotepad.png), [local PowerShell event](screenshots/LocalSysmonWorking.png), and [Wazuh alert](screenshots/SysmonSendingDetectiontoWazuh.png). See the [screenshot inventory](screenshots/README.md) for evidence boundaries.
+
 ## Architecture
 
 ```text
@@ -44,7 +58,7 @@ Read the [full authentication case](investigations/IR-002-authentication.md) and
             WAZUH-SOC01 (Ubuntu VM)             WIN11-01 (Windows 11 VM)
             - Wazuh Manager                    - Wazuh Agent v4.14.7 (001)
             - Wazuh Indexer                    - Windows Security audit logs
-            - Wazuh Dashboard                  - Sysmon [NOT YET INSTALLED]
+            - Wazuh Dashboard                  - Sysmon (Event ID 1 validated)
             - Chrony
                         ^                         |
                         |    Wazuh agent data     |
@@ -63,7 +77,11 @@ Controlled local sign-in attempt
     → Analyst correlation to EventRecordID 12488
 ```
 
-The diagram simplifies internal Wazuh ingestion/indexing; it does not imply that **all** raw Windows events generate alerts. Sysmon telemetry and any future AD/DC path are not part of the currently validated pipeline.
+**Validated Sysmon detection flow:**
+
+Controlled PowerShell test → Sysmon Event ID 1 on WIN11-01 → Wazuh Agent 001 → Wazuh Manager custom rule 100210 → Wazuh alerts index → Wazuh Dashboard / Threat Hunting.
+
+The diagram simplifies Wazuh ingestion/indexing; not all raw events generate alerts. Windows Security and Sysmon Event ID 1 have validated detection paths. AD/DC remains future work.
 
 ### Network notes
 
@@ -81,10 +99,10 @@ See [asset inventory](architecture/asset-inventory.md), [environment](setup/01-l
 
 | Implemented and demonstrated | Planned / not yet verified |
 | --- | --- |
-| VirtualBox, Ubuntu-based Wazuh VM, Wazuh Manager, Indexer, Dashboard | Sysmon, Microsoft-Windows-Sysmon event channel ingestion |
+| VirtualBox, Ubuntu-based Wazuh VM, Manager, Indexer, Dashboard | Sysmon Event IDs 3 and 22; not independently validated |
 | Windows 11 test VM, Wazuh Windows Agent | Windows Server, AD, domain authentication, additional endpoints |
-| Windows Security log collection and analysis (4624/4625/4672) | Custom Wazuh rules, detection-as-code, scheduled hunts |
-| Wazuh rule 60122 matching a 4625 test event | Full forensic acquisition, malware triage, Velociraptor |
+| Windows Security log analysis (4624/4625/4672); Sysmon Event ID 1 and forwarding | Broader detection-as-code workflow and scheduled hunts |
+| Built-in rule 60122; custom rule 100210 with benign level-7 alert validation | Full forensic acquisition, malware triage, Velociraptor |
 | Chrony clock troubleshooting and sync recovery | Autonomous scenario generator, SOAR, response automation |
 
 PowerShell and the local `runas` utility were used for lab administration/testing. A mention of a tool does not mean a detection, automation script, or investigation utilizing it is complete.
@@ -94,16 +112,16 @@ PowerShell and the local `runas` utility were used for lab administration/testin
 | ID | Work | State |
 | --- | --- | --- |
 | **IR-002** | [Controlled authentication failure and SIEM correlation](investigations/IR-002-authentication.md) | **Milestone 1 complete — benign validation case** |
-| IR-001 | Suspicious PowerShell / process lineage | Planned, dependent on Sysmon |
+| **IR-001** | [Sysmon process lineage and controlled PowerShell detection](investigations/IR-001-sysmon-process-lineage.md) | **Complete — benign, authorized test activity** |
 | IR-003 | Persistence | Planned |
 | IR-004 | Endpoint forensics | Planned |
 | IR-005 | Multi-stage incident | Planned |
 
-The report documents collected facts, interpretation, the clock-drift issue, limitations, and the disposition. The `IR-002` identifier follows the project's existing planned case numbering. It does **not** imply that IR-001 or other cases are completed.
+Both reports separate observations, interpretation, limitations, and disposition. IR-002 preserves the authentication milestone; IR-001 records the completed Sysmon validation. Identifiers follow the original plan rather than completion order.
 
 ### Detection development status
 
-[Detection planning](detections/README.md) is separate from using a built-in Wazuh rule. **Rule 60122 was supplied by Wazuh; no custom rule has been written or tested yet.** Future goals include process anomalies, login patterns, scheduled tasks, network indicators, and rule-quality testing.
+[DET-004](detections/README.md) documents implemented custom rule **100210** and its successful benign positive test. **Rule 60122 remains a built-in Wazuh rule.** Negative tests, false-positive measurements, broader detections, and scheduled hunts remain future work.
 
 ### Threat hunting, malware triage, and ATT&CK
 
@@ -120,14 +138,15 @@ enterprise-soc-threat-hunting-lab/
 │   ├── 01-lab-environment.md
 │   ├── 02-wazuh-siem.md
 │   ├── 03-windows-agent.md
-│   ├── 04-sysmon.md                 # planned
+│   ├── 04-sysmon.md                 # implemented / validated
 │   ├── 05-active-directory.md       # planned
 │   ├── 06-powershell-logging.md     # planned
 │   └── 07-velociraptor.md          # planned
 ├── investigations/
 │   ├── README.md
+│   ├── IR-001-sysmon-process-lineage.md # controlled benign case
 │   └── IR-002-authentication.md    # controlled benign case
-├── detections/README.md           # plan, not deployed detections
+├── detections/README.md           # DET-004 implemented; backlog
 ├── threat-hunts/README.md         # plan, not completed hunts
 ├── malware-triage/README.md       # future work
 ├── mitre-attack/README.md         # mapping policy; no confirmed attack mapping
@@ -139,5 +158,3 @@ enterprise-soc-threat-hunting-lab/
     ├── lessons-learned.md
     └── interview-notes.md
 ```
-
-
