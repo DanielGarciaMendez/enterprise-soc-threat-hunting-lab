@@ -1,4 +1,4 @@
-# IR-001 ? Sysmon process lineage and controlled PowerShell detection
+# IR-001 : Sysmon process lineage and controlled PowerShell detection
 
 ## Environment
 
@@ -9,15 +9,9 @@
 | Endpoint source | Microsoft-Windows-Sysmon/Operational, Event ID **1** |
 | Detection | Custom file SysmonPowershellTest.xml, rule **100210**, level **7** |
 
-The displayed agent IP is not asserted to be its host-only interface address.
-
 ## Objective
 
 Document Sysmon process-creation analysis and validate centralized detection through Wazuh using a benign PowerShell command.
-
-## Scope
-
-Authorized personal lab activity on the Windows endpoint and Wazuh server only: installation, local process inspection, lineage correlation, forwarding, custom rule creation, and positive alert validation. 
 
 ## Evidence sources
 
