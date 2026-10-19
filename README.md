@@ -140,19 +140,4 @@ enterprise-soc-threat-hunting-lab/
     └── interview-notes.md
 ```
 
-## Technical lessons so far
-
-1. **An Active agent is not proof that a specific Windows event was collected.** Verify the original EventRecordID against the Wazuh record.
-2. **Event ≠ alert ≠ investigation ticket ≠ incident.** Wazuh generated a level-5 rule match, not evidence of an attacker.
-3. **`0xC000006A` means incorrect password.** A single bad password cannot prove a brute-force attempt.
-4. **`::1` means IPv6 loopback.** It is not an external source address.
-5. **Windows 4672 is not automatically privilege escalation.** It can appear for legitimate privileged sessions.
-
-## Next milestones
-
-1. Preserve sanitized screenshots/short event exports for the completed authentication case.
-2. Study TCP/UDP, DNS, TLS, VPN, NAT, IP/ports and packet flows; connect networking theory to SOC investigations.
-3. Install/configure Sysmon and confirm process-creation Event **1** locally and, if configured, in Wazuh.
-4. Run **blind, controlled** endpoint scenarios; make an analyst decision before revealing whether the activity was benign or simulated adversarial behavior.
-5. Publish separate case notes and detection improvements supported by evidence.
 
