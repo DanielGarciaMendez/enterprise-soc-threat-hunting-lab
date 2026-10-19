@@ -1,6 +1,6 @@
 # Enterprise SOC, Threat Hunting & Incident Response Lab
 
-> **Status: In progress | October 18, 2026**
+> **Status: In progress**
 > Personal VirtualBox lab for learning centralized security monitoring, endpoint investigations, detection engineering, and incident response.
 
 ## Project overview
@@ -8,8 +8,6 @@
 I am building and operating a small enterprise-style security lab from the perspective of a SOC analyst. The focus is not just installing tools: it is understanding what telemetry proves, validating detections, correlating sources, investigating competing explanations, and documenting defensible conclusions.
 
 **Investigation workflow:** Telemetry → Detection / hypothesis → Validation → Context and correlation → Assessment → Approved response if warranted → Documentation → Detection improvement.
-
-Completed capabilities include Sysmon installation and Event ID 1 analysis, Notepad process lineage, Wazuh forwarding, and custom level-7 alert validation. Some parts of that workflow are future learning goals. I only mark capabilities as implemented after collecting evidence that they work.
 
 ## Milestone tracker
 
@@ -45,7 +43,7 @@ Read the [full authentication case](investigations/IR-002-authentication.md) and
 - Created custom rule **100210**, level **7**, in **SysmonPowershellTest.xml**.
 - Ran a benign PowerShell ExecutionPolicy Bypass command that printed SOC-LAB-TEST; Threat Hunting displayed **LAB: PowerShell execution policy bypass**.
 
-This demonstrates detection engineering and SIEM validation. The known activity was benign and authorized. Lineage and suspicious syntax require context. Event IDs **3** and **22** remain future work.
+This demonstrates detection engineering and SIEM validation. Event IDs **3** and **22** remain future work.
 
 Read [IR-001](investigations/IR-001-sysmon-process-lineage.md), [Sysmon setup](setup/04-sysmon.md), and [DET-004](detections/README.md). Evidence: [rule definition](screenshots/BeningTestSysmon.png), [Notepad parent context](screenshots/ChildProcessNotepad.png), [local PowerShell event](screenshots/LocalSysmonWorking.png), and [Wazuh alert](screenshots/SysmonSendingDetectiontoWazuh.png). See the [screenshot inventory](screenshots/README.md) for evidence boundaries.
 
@@ -88,10 +86,10 @@ The diagram simplifies Wazuh ingestion/indexing; not all raw events generate ale
 | Asset | Role / version | Verified address or identifier | Status |
 | --- | --- | --- | --- |
 | `WAZUH-SOC01` | Ubuntu VM, Wazuh Manager/Indexer/Dashboard | Host-only **`192.168.56.101`**, HTTPS Dashboard reachable | Running |
-| `WIN11-01` | Windows 11 Home, build `10.0.26200.8037` | Wazuh **Agent 001**, Agent v**4.14.7**; dashboard displayed IP **`10.0.2.15`** | Agent **Active** |
+| `WIN11-01` | Windows 11 Home, build | Wazuh **Agent 001**, Agent v**4.14.7**; dashboard displayed IP **`10.0.2.15`** | Agent **Active** |
 | `DC01` | Future Windows Server / AD / DNS | **No verified address** | Planned |
 
-The VirtualBox design uses NAT for outbound access and a host-only adapter for lab connectivity. The agent-displayed `10.0.2.15` is **not** asserted to be the Windows VM's host-only address. Older `10.10.10.x` entries were design placeholders, not measured VM addresses; do not use them as deployed addresses.
+
 
 See [asset inventory](architecture/asset-inventory.md), [environment](setup/01-lab-environment.md), and [Wazuh setup](setup/02-wazuh-siem.md).
 
@@ -103,9 +101,7 @@ See [asset inventory](architecture/asset-inventory.md), [environment](setup/01-l
 | Windows 11 test VM, Wazuh Windows Agent | Windows Server, AD, domain authentication, additional endpoints |
 | Windows Security log analysis (4624/4625/4672); Sysmon Event ID 1 and forwarding | Broader detection-as-code workflow and scheduled hunts |
 | Built-in rule 60122; custom rule 100210 with benign level-7 alert validation | Full forensic acquisition, malware triage, Velociraptor |
-| Chrony clock troubleshooting and sync recovery | Autonomous scenario generator, SOAR, response automation |
 
-PowerShell and the local `runas` utility were used for lab administration/testing. A mention of a tool does not mean a detection, automation script, or investigation utilizing it is complete.
 
 ## Evidence and investigations
 
@@ -117,16 +113,14 @@ PowerShell and the local `runas` utility were used for lab administration/testin
 | IR-004 | Endpoint forensics | Planned |
 | IR-005 | Multi-stage incident | Planned |
 
-Both reports separate observations, interpretation, limitations, and disposition. IR-002 preserves the authentication milestone; IR-001 records the completed Sysmon validation. Identifiers follow the original plan rather than completion order.
 
 ### Detection development status
 
-[DET-004](detections/README.md) documents implemented custom rule **100210** and its successful benign positive test. **Rule 60122 remains a built-in Wazuh rule.** Negative tests, false-positive measurements, broader detections, and scheduled hunts remain future work.
+[DET-004](detections/README.md) documents implemented custom rule **100210** and its successful benign positive test. **Rule 60122 remains a built-in Wazuh rule!!**
 
 ### Threat hunting, malware triage, and ATT&CK
 
-[Threat hunts](threat-hunts/README.md), [malware triage](malware-triage/README.md), and [MITRE ATT&CK tracking](mitre-attack/README.md) remain planned. A default rule's ATT&CK tag is **not proof** that its technique occurred in this case. The authentication lab was an authorized benign test.
-
+[Threat hunts](threat-hunts/README.md), [malware triage](malware-triage/README.md), and [MITRE ATT&CK tracking](mitre-attack/README.md) remain planned. 
 ## Project structure
 
 ```text
