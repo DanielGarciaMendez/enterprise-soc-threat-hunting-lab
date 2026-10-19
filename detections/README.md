@@ -4,12 +4,9 @@
 
 ## Built-in Wazuh rule observed
 
-- **Rule 60122** ? ?Logon Failure - Unknown user or bad password?; level 5; matched Windows Security Event 4625 for soc-test in the controlled authentication lab. Source EventRecordID **12488** confirmed end-to-end.
-- This is **Wazuh's existing rule**, not a custom rule written in this project.
-- One routine failure can match it; an indexed alert is not equivalent to a security incident or automatic paging threshold.
 - See [IR-002](../investigations/IR-002-authentication.md).
 
-## DET-004 ? PowerShell ExecutionPolicy Bypass via Sysmon Event 1
+## DET-004: PowerShell ExecutionPolicy Bypass via Sysmon Event 1
 
 | Property | Validated state |
 | --- | --- |
@@ -17,8 +14,6 @@
 | Source | Custom Wazuh rule **100210**, file **SysmonPowershellTest.xml**, created through the Dashboard |
 | Prerequisite | Sysmon Event ID 1 forwarded through Wazuh eventchannel collection |
 | Endpoint | WIN11-01, Wazuh Agent 001 |
-| Match | sysmon_event1 group; case-insensitive ExecutionPolicy followed by whitespace and Bypass in win.eventdata.commandLine |
-| Result | Level **7**, **LAB: PowerShell execution policy bypass** |
 | Disposition | Intentionally triggered benign, authorized lab alert |
 
 ### Rule definition
@@ -33,7 +28,6 @@
 </group>
 ```
 
-The rule field is win.eventdata.commandLine; the indexed alert exposes data.win.eventdata.commandLine.
 
 ### Validation
 
